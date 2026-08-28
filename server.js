@@ -35,7 +35,6 @@ function writeData(data){ fs.writeFileSync(DATA_FILE, JSON.stringify(data,null,2
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function stripTags(s){
   return String(s||'')
-    .replace(/<[^>]*>/g,' ')
     .replace(/&nbsp;/gi,' ')
     .replace(/&amp;/gi,'&')
     .replace(/&#39;|&apos;/gi,"'")
@@ -44,6 +43,7 @@ function stripTags(s){
     .replace(/&gt;/gi,'>')
     .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCharCode(parseInt(n,16)))
+    .replace(/<[^>]*>/g,' ')
     .replace(/\s+/g,' ')
     .trim();
 }
