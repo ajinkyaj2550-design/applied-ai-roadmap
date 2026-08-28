@@ -5,7 +5,7 @@ const { URL } = require('url');
 
 const PORT = process.env.PORT || 8080;
 const ROOT = __dirname;
-const MOBILE_FILE = path.join(ROOT, '..', 'Mobile', 'index.html');
+const MOBILE_FILE = path.join(ROOT, 'index.html');
 const DATA_FILE = path.join(ROOT, 'opportunities.json');
 const CACHE_MS = 6 * 60 * 60 * 1000;
 
