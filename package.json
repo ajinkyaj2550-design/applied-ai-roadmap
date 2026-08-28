@@ -1,7 +1,0 @@
-{
-  "name": "applied-ai-roadmap-live",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": { "start": "node Backend/server.js" },
-  "engines": { "node": ">=18" }
-}
