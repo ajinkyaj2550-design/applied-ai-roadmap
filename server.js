@@ -106,9 +106,9 @@ const server=http.createServer(async(req,res)=>{
   }
   if(req.method==='POST'&&u.pathname==='/refresh'){
     const expected=process.env.REFRESH_TOKEN||'';
-    const provided=req.headers['x-refresh-token']||u.searchParams.get('token')||'';
-    if(expected && provided!==expected) return send(res,401,'application/json',JSON.stringify({error:'unauthorized'}));
-    if(!expected) return send(res,403,'application/json',JSON.stringify({error:'set REFRESH_TOKEN on the server'}));
+const provided=req.headers['x-refresh-token']||u.searchParams.get('token')||'';
+if(expected && provided!==expected)
+  return send(res,401,'application/json',JSON.stringify({error:'unauthorized'}));
     try{return send(res,200,'application/json; charset=utf-8',JSON.stringify(await refresh()));}catch(e){return send(res,500,'application/json',JSON.stringify({error:'refresh failed'}));}
   }
   if(req.method==='GET'&&u.pathname==='/health') return send(res,200,'application/json',JSON.stringify({ok:true,updatedAt:readData().updatedAt}));
