@@ -33,7 +33,20 @@ function readData(){
 }
 function writeData(data){ fs.writeFileSync(DATA_FILE, JSON.stringify(data,null,2)); }
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function stripTags(s){ return String(s||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim(); }
+function stripTags(s){
+  return String(s||'')
+    .replace(/<[^>]*>/g,' ')
+    .replace(/&nbsp;/gi,' ')
+    .replace(/&amp;/gi,'&')
+    .replace(/&#39;|&apos;/gi,"'")
+    .replace(/&quot;/gi,'"')
+    .replace(/&lt;/gi,'<')
+    .replace(/&gt;/gi,'>')
+    .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCharCode(parseInt(n,16)))
+    .replace(/\s+/g,' ')
+    .trim();
+}
 function domainOf(u){ try{return new URL(u).hostname.toLowerCase().replace(/^www\./,'');}catch{return '';} }
 function allowedDomain(d){ return [...ALLOWED_DOMAINS].some(x=>d===x || d.endsWith('.'+x)); }
 function safeUrl(u){ try { const x=new URL(u); return ['https:','http:'].includes(x.protocol) ? x.toString() : ''; } catch { return ''; } }
