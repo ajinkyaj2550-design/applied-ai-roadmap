@@ -315,6 +315,64 @@
   padding:12px;
   margin-top:9px;
   background:rgba(255,255,255,.025);
+  .opp-delete-toolbar{
+  display:none;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:10px;
+  margin-bottom:4px;
+  padding:9px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.025);
+}
+
+.opp-delete-toolbar.show{
+  display:flex;
+}
+
+.opp-select-all{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-right:auto;
+  color:var(--text);
+  font-size:11px;
+  cursor:pointer;
+}
+
+.opp-select-all input,
+.opp-check{
+  width:16px;
+  height:16px;
+  cursor:pointer;
+}
+
+.opp-delete-btn{
+  border:1px solid rgba(255,122,107,.4);
+  background:rgba(255,122,107,.1);
+  color:var(--coral);
+  border-radius:9px;
+  padding:6px 9px;
+  font-size:11px;
+  cursor:pointer;
+}
+
+.opp-cancel-btn{
+  border:1px solid var(--line);
+  background:var(--panel);
+  color:var(--muted);
+  border-radius:9px;
+  padding:6px 9px;
+  font-size:11px;
+  cursor:pointer;
+}
+
+.opp-select-wrap{
+  display:none;
+  flex:none;
+}
   min-width:0;
   max-width:100%;
   overflow:hidden;
@@ -488,9 +546,28 @@
     <div class="panel">
       <div class="opp-head">
         <div><h3>उपयुक्त संधी</h3><div class="opp-sub">Hackathons · Internships · Jobs · Fellowships · Programs · Workshops · Deadlines</div></div>
-        <div class="opp-actions"><button class="opp-action" id="oppRefresh">↻ Refresh</button><button class="opp-action" id="oppReadAll">✓ Read all</button></div>
+        <div class="opp-actions">
+  <button class="opp-action" id="oppRefresh">↻ Refresh</button>
+  <button class="opp-action" id="oppReadAll">✓ Read all</button>
+  <button class="opp-action" id="oppDeleteMode">🗑️ Delete</button>
+        </div>
       </div>
-      <div id="oppList"></div>
+      <div class="opp-delete-toolbar" id="oppDeleteToolbar">
+  <label class="opp-select-all">
+    <input type="checkbox" id="oppSelectAll">
+    <span>Select All</span>
+  </label>
+
+  <button class="opp-delete-btn" id="oppDeleteSelected">
+    🗑️ Delete Selected
+  </button>
+
+  <button class="opp-cancel-btn" id="oppDeleteCancel">
+    ✕ Cancel
+  </button>
+</div>
+
+<div id="oppList"></div>
       <div class="opp-live-status" id="oppLiveStatus">● Live feed: checking…</div><div class="opp-sync-meta" id="oppSyncMeta"></div>
     </div>
     <div class="panel" style="margin-top:14px;border-left:3px solid var(--violet)">
@@ -1655,17 +1732,229 @@ function loadOpps(){
 function saveOpps(items){ localStorage.setItem(OPP_KEY,JSON.stringify(items.slice(0,100))); }
 function daysUntil(date){ if(!date)return null; const a=new Date(date+'T00:00:00'), b=new Date(); return Math.ceil((a-b)/86400000); }
 function oppRank(o){ const d=daysUntil(o.deadline); let r=o.priority==='important'?30:o.priority==='useful'?15:0; if(d!==null&&d<=7)r+=20; if(d!==null&&d<0)r-=100; r+=o.score/10; return r; }
+let oppDeleteMode=false;
+
+const OPP_DELETED_KEY='aiRoadmapDeletedOpportunities_v1';
+
+function loadDeletedOpps(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(OPP_DELETED_KEY)||'[]');
+    return Array.isArray(raw)?raw:[];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveDeletedOpps(ids){
+  localStorage.setItem(
+    OPP_DELETED_KEY,
+    JSON.stringify([...new Set(ids)].slice(-500))
+  );
+}
+
+function isOppDeleted(id){
+  return loadDeletedOpps().includes(id);
+}
+
 function renderOpportunities(){
-  const list=document.getElementById('oppList'), badge=document.getElementById('oppBadge'); if(!list)return;
-  let items=loadOpps().filter(o=>{const d=daysUntil(o.deadline);return d===null||d>=0;}).sort((a,b)=>oppRank(b)-oppRank(a));
+
+  const list=document.getElementById('oppList');
+  const badge=document.getElementById('oppBadge');
+  const toolbar=document.getElementById('oppDeleteToolbar');
+
+  if(!list)return;
+
+  let items=loadOpps()
+    .filter(o=>{
+      const d=daysUntil(o.deadline);
+      return (d===null||d>=0) && !isOppDeleted(o.id);
+    })
+    .sort((a,b)=>oppRank(b)-oppRank(a));
+
   saveOpps(items);
+
   const unread=items.filter(o=>!o.read).length;
-  badge.textContent=unread>9?'9+':String(unread); badge.style.display=unread?'block':'none';
-  if(!items.length){list.innerHTML='<div class="opp-empty">सध्या कोणतीही verified relevant opportunity उपलब्ध नाही.</div>';return;}
-  list.innerHTML=items.slice(0,12).map(o=>{
-    const d=daysUntil(o.deadline); const dl=d===null?'Deadline: —':d===0?'Deadline: आज':d<0?'Expired':`Deadline: ${o.deadline} (${d} दिवस)`;
-    return `<article class="opp-card ${o.priority==='important'?'important':''}"><div class="opp-card-title">${escapeHTML(o.title)}</div><div class="opp-meta"><span class="opp-pill">${escapeHTML(o.type)}</span><span class="opp-pill">${escapeHTML(dl)}</span>${o.score?`<span class="opp-pill">Match ${o.score}/100</span>`:''}</div><p>${escapeHTML(o.description)}</p><a href="${safeOppUrl(o.url)}" target="_blank" rel="noopener noreferrer">View opportunity ↗</a></article>`;
+
+  badge.textContent=unread>9?'9+':String(unread);
+  badge.style.display=unread?'block':'none';
+
+  if(toolbar){
+    toolbar.classList.toggle('show',oppDeleteMode);
+  }
+
+  if(!items.length){
+    list.innerHTML='<div class="opp-empty">सध्या कोणतीही verified relevant opportunity उपलब्ध नाही.</div>';
+    updateOppSelectAllState();
+    return;
+  }
+
+  const visibleItems=oppDeleteMode ? items : items.slice(0,12);
+
+  list.innerHTML=visibleItems.map(o=>{
+
+    const d=daysUntil(o.deadline);
+
+    const dl=
+      d===null
+        ?'Deadline: —'
+        :d===0
+          ?'Deadline: आज'
+          :d<0
+            ?'Expired'
+            :`Deadline: ${o.deadline} (${d} दिवस)`;
+
+    return `
+      <article class="opp-card ${o.priority==='important'?'important':''}">
+        <div style="display:flex;gap:9px;align-items:flex-start">
+
+          <div style="display:${oppDeleteMode?'block':'none'};flex:none">
+            <input
+              type="checkbox"
+              class="opp-check"
+              data-opp-id="${escapeHTML(o.id)}"
+            >
+          </div>
+
+          <div style="flex:1;min-width:0">
+
+            <div class="opp-card-title">
+              ${escapeHTML(o.title)}
+            </div>
+
+            <div class="opp-meta">
+              <span class="opp-pill">
+                ${escapeHTML(o.type)}
+              </span>
+
+              <span class="opp-pill">
+                ${escapeHTML(dl)}
+              </span>
+
+              ${o.score
+                ?`<span class="opp-pill">Match ${o.score}/100</span>`
+                :''
+              }
+            </div>
+
+            <p>${escapeHTML(o.description)}</p>
+
+            <a
+              href="${safeOppUrl(o.url)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View opportunity ↗
+            </a>
+
+          </div>
+        </div>
+      </article>
+    `;
+
   }).join('');
+
+  updateOppSelectAllState();
+}
+
+function markOppsRead(){
+  const items=loadOpps().map(o=>({...o,read:true}));
+  saveOpps(items);
+  renderOpportunities();
+}
+
+function enterOppDeleteMode(){
+  oppDeleteMode=true;
+
+  const selectAll=document.getElementById('oppSelectAll');
+
+  if(selectAll){
+    selectAll.checked=false;
+    selectAll.indeterminate=false;
+  }
+
+  renderOpportunities();
+}
+
+function exitOppDeleteMode(){
+  oppDeleteMode=false;
+
+  const selectAll=document.getElementById('oppSelectAll');
+
+  if(selectAll){
+    selectAll.checked=false;
+    selectAll.indeterminate=false;
+  }
+
+  renderOpportunities();
+}
+
+function updateOppSelectAllState(){
+
+  const selectAll=document.getElementById('oppSelectAll');
+
+  if(!selectAll)return;
+
+  const checks=[
+    ...document.querySelectorAll('.opp-check')
+  ];
+
+  const checked=checks.filter(c=>c.checked).length;
+
+  selectAll.checked=
+    checks.length>0 &&
+    checked===checks.length;
+
+  selectAll.indeterminate=
+    checked>0 &&
+    checked<checks.length;
+}
+
+function toggleOppSelectAll(){
+
+  const selectAll=document.getElementById('oppSelectAll');
+
+  if(!selectAll)return;
+
+  document.querySelectorAll('.opp-check').forEach(
+    checkbox=>{
+      checkbox.checked=selectAll.checked;
+    }
+  );
+
+  updateOppSelectAllState();
+}
+
+function deleteSelectedOpps(){
+
+  const selected=[
+    ...document.querySelectorAll('.opp-check:checked')
+  ].map(
+    checkbox=>checkbox.dataset.oppId
+  );
+
+  if(!selected.length){
+    toast('आधी notification निवडा');
+    return;
+  }
+
+  const deletedIds=loadDeletedOpps();
+
+  saveDeletedOpps([
+    ...deletedIds,
+    ...selected
+  ]);
+
+  const selectedSet=new Set(selected);
+
+  const remaining=loadOpps().filter(
+    o=>!selectedSet.has(o.id)
+  );
+
+  saveOpps(remaining);
+
+  toast(`${selected.length} notification delete केल्या ✓`);
+
+  exitOppDeleteMode();
 }
 function markOppsRead(){ const items=loadOpps().map(o=>({...o,read:true})); saveOpps(items); renderOpportunities(); }
 function getOpportunityFeedUrl(){
@@ -1708,6 +1997,24 @@ async function refreshOpportunities(silent=false){
 document.getElementById('oppBellBtn')?.addEventListener('click',()=>{ openTab('opportunities'); renderOpportunities(); });
 document.getElementById('oppReadAll')?.addEventListener('click',markOppsRead);
 document.getElementById('oppRefresh')?.addEventListener('click',refreshOpportunities);
+  document.getElementById('oppDeleteMode')
+  ?.addEventListener('click',enterOppDeleteMode);
+
+document.getElementById('oppDeleteCancel')
+  ?.addEventListener('click',exitOppDeleteMode);
+
+document.getElementById('oppDeleteSelected')
+  ?.addEventListener('click',deleteSelectedOpps);
+
+document.getElementById('oppSelectAll')
+  ?.addEventListener('change',toggleOppSelectAll);
+
+document.getElementById('oppList')
+  ?.addEventListener('change',e=>{
+    if(e.target.classList.contains('opp-check')){
+      updateOppSelectAllState();
+    }
+  });
 (function initOpportunityLayer(){
   const saved=loadOpps(); if(!saved.length && OPPORTUNITY_SEED.length)saveOpps(OPPORTUNITY_SEED.map(normalizeOpportunity).filter(Boolean));
   renderOpportunities();
