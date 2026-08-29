@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: applied-ai-roadmap-live
-    env: node
-    buildCommand: npm install
-    startCommand: npm start
-    autoDeploy: true
