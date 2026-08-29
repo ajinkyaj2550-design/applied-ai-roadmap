@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: applied-ai-roadmap-os
-    runtime: node
-    buildCommand: ""
-    startCommand: "node server.js"
