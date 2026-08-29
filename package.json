@@ -1,0 +1,9 @@
+{
+  "name":"applied-ai-roadmap-os",
+  "version":"3.0.0",
+  "private":true,
+  "description":"Applied AI Engineer Roadmap OS with dynamic, roadmap-filtered opportunity notifications.",
+  "main":"server.js",
+  "scripts":{"start":"node server.js"},
+  "engines":{"node":">=18"}
+}
