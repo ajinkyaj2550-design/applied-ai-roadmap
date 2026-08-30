@@ -1,0 +1,77 @@
+Applied AI Roadmap OS — v5: Notifications removed + PWA + PDF gallery + reliability fixes
+============================================================================
+
+WHAT'S IN THIS BUILD
+---------------------
+1. Notification/Opportunities feature — REMOVED (previous change, unchanged
+   here). server.js has zero external API calls, zero billing risk.
+
+2. Roadmap PDF gallery — NEW
+   - Your uploaded 10-level roadmap PDF is now served at /roadmap-gallery.pdf
+   - Levels tab shows a new "📄 Roadmap PDF" button right next to the
+     existing "🧭 Master Roadmap उघड" button — opens the PDF in a new tab.
+
+3. PWA — installable + works offline after first visit — NEW
+   - manifest.json + icons/icon-192.png + icons/icon-512.png + favicon.png
+   - sw.js (service worker): caches the app shell (index.html, manifest,
+     icons) and opportunistically caches anything else you open (including
+     the PDF) so it's available offline after the first successful load.
+   - On Android Chrome you'll see an "Install app" / "Add to Home Screen"
+     prompt. On iOS Safari: Share → Add to Home Screen (manual, Apple
+     doesn't show an automatic prompt).
+   - This is a progressive enhancement — if the browser doesn't support
+     service workers, the app works exactly as before, just not installable.
+
+4. Pomodoro timer — now reload-safe — FIXED
+   - Timer state (duration, running/paused, exact remaining time) is saved
+     to localStorage on every tick/start/pause/reset.
+   - If you accidentally close the tab or refresh mid-session, reopening
+     the app resumes the timer from the correct remaining time. If enough
+     time passed while the tab was closed that the session would have
+     finished, it's credited immediately instead of silently lost.
+
+5. Backup safety banner — NEW
+   - Dashboard now shows a banner if you have real progress logged AND it's
+     been 7+ days since your last Export — with a one-click "Export कर"
+     button right there. Stays hidden for brand-new users with no progress
+     yet, and hides itself again right after you export or import.
+   - This is a visible nudge, not an automatic background upload — there is
+     still no server-side storage of your progress (by design: Render's
+     free-tier disk is not persistent across deploys, so a fake "cloud
+     sync" would be unreliable and worse than the honest Export/Import
+     flow already in the app).
+
+6. Meta / sharing polish — NEW
+   - Favicon, apple-touch-icon, theme-color, page description, and
+     Open Graph tags so sharing the link shows a proper title/icon instead
+     of a blank preview.
+
+7. Small accessibility fix — theme toggle button now has an aria-label.
+
+HONEST LIMITATION (not fixed, by design)
+------------------------------------------
+True "phone notification even when the app/tab is fully closed" (like
+WhatsApp) needs a real Web Push backend (VAPID keys + a push library +
+persistent subscription storage + a server-side scheduler). Building that
+blind, without the ability to test real push delivery over the network in
+this environment, risks shipping something broken that looks like it works.
+So this was intentionally NOT added. The existing "7 PM reminder while the
+tab is open" behavior is unchanged. Installing the app as a PWA (see #3)
+makes it behave more like a real app and somewhat more likely to have that
+reminder trigger, but it is still not a guaranteed background push.
+
+FILES IN THIS ZIP
+------------------
+index.html, server.js, manifest.json, sw.js, favicon.png,
+icons/icon-192.png, icons/icon-512.png, roadmap-gallery.pdf, DEPLOY.txt
+
+DEPLOY STEPS
+------------
+1. Replace ALL of these files in your GitHub repo (keep the same folder
+   structure — icons/ is a subfolder). Delete opportunities.json from the
+   repo if it's still there (unused).
+2. Push. Render auto-deploys.
+3. Open the site → Levels tab → confirm "📄 Roadmap PDF" button opens the
+   PDF. Confirm no 🔔 bell icon anywhere.
+4. On your phone's Chrome: look for "Install app" in the browser menu (or
+   an automatic install banner) to test the PWA install.
